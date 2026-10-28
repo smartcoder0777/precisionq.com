@@ -1,6 +1,7 @@
 import "server-only";
 
 import * as ClinicModel from "@/models/clinic.model";
+import { syncConectorClinicsIntoAdmin } from "@/lib/sync-conector-clinics";
 import type { TicketsPagePayload, TicketsPageRow } from "@/types/tickets-page";
 import type { TicketListRecord } from "@/models/ticket.model";
 import * as TicketModel from "@/models/ticket.model";
@@ -135,16 +136,20 @@ function mapRow(row: TicketListRecord): TicketsPageRow {
 }
 
 export async function getTicketsPagePayload(): Promise<TicketsPagePayload> {
+  await syncConectorClinicsIntoAdmin();
+
   const [rows, clinicRows, users] = await Promise.all([
     TicketModel.getTicketsForListView(),
     ClinicModel.getAllClinics(),
     UserModel.listUsersForTicketSelect(),
   ]);
 
-  const clinics = clinicRows.map((c) => ({
-    id: c.id,
-    name: c.name?.trim() || `Clinic #${c.id}`,
-  }));
+  const clinics = clinicRows
+    .map((c) => ({
+      id: c.id,
+      name: c.name?.trim() || `Clinic #${c.id}`,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
   return {
     tickets: rows.map(mapRow),

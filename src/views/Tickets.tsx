@@ -34,6 +34,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ClinicSelectOption, TicketsPageRow, UserSelectOption } from "@/types/tickets-page";
 import { useToast } from "@/hooks/use-toast";
 import { API_ROUTES } from "@/routes/index";
+import { adminFetch, AdminUnauthorizedError } from "@/lib/admin-fetch";
 
 const PAGE_SIZE = 10;
 
@@ -265,7 +266,7 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
     try {
       const payload = buildPayload();
       if (editing) {
-        const res = await fetch(API_ROUTES.ticket(editing.id), {
+        const res = await adminFetch(API_ROUTES.ticket(editing.id), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -277,7 +278,7 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
         }
         toast({ title: "Updated", description: `Ticket ${editing.no} saved.` });
       } else {
-        const res = await fetch(API_ROUTES.TICKETS, {
+        const res = await adminFetch(API_ROUTES.TICKETS, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -291,7 +292,15 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
       }
       setDialogOpen(false);
       router.refresh();
-    } catch {
+    } catch (e) {
+      if (e instanceof AdminUnauthorizedError) {
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please sign in again to continue.",
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Request failed", description: "Network error." });
     } finally {
       setSaving(false);
@@ -302,7 +311,7 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
     if (!deleteTicket) return;
     setRemoving(true);
     try {
-      const res = await fetch(API_ROUTES.ticket(deleteTicket.id), { method: "DELETE" });
+      const res = await adminFetch(API_ROUTES.ticket(deleteTicket.id), { method: "DELETE" });
       const data = (await res.json()) as { ok?: boolean; message?: string };
       if (!res.ok || !data.ok) {
         toast({ variant: "destructive", title: "Delete failed", description: data.message || res.statusText });
@@ -311,7 +320,15 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
       setDeleteTicket(null);
       toast({ title: "Deleted", description: `Ticket ${deleteTicket.no} removed.` });
       router.refresh();
-    } catch {
+    } catch (e) {
+      if (e instanceof AdminUnauthorizedError) {
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please sign in again to continue.",
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Delete failed", description: "Network error." });
     } finally {
       setRemoving(false);

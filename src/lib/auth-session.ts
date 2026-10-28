@@ -65,6 +65,11 @@ export async function getAuthSession(): Promise<AuthSession | null> {
   return decodeSession(raw);
 }
 
+/** Re-issue the session cookie (extends TTL) after authenticated activity. */
+export async function touchAuthSession(session: AuthSession): Promise<void> {
+  await setAuthSession(session);
+}
+
 export async function setAuthSession(session: AuthSession): Promise<void> {
   let maxAge = DEFAULT_SESSION_TTL_SECONDS;
   try {

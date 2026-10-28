@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { API_ROUTES, ROUTES } from "@/routes/index";
+import { ADMIN_SESSION_EXPIRED_EVENT } from "@/lib/admin-fetch";
 
 export interface User {
   id: string;
@@ -75,6 +76,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     void refreshSession();
   }, [refreshSession]);
+
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null);
+      setSecurityVerified(false);
+      setSecurityQuestion(null);
+      window.location.assign(ROUTES.LOGIN);
+    };
+    window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
+
+  useEffect(() => {
+    if (authLoading || !user || !securityVerified) return;
+
+    const tick = () => {
+      if (document.visibilityState === "visible") void refreshSession();
+    };
+
+    const id = window.setInterval(tick, 2 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [authLoading, user, securityVerified, refreshSession]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const path = window.location.pathname;
+    const isPublicAdmin = path === ROUTES.LOGIN || path === ROUTES.SECURITY;
+    if (!user && path.startsWith("/admin") && !isPublicAdmin) {
+      window.location.assign(ROUTES.LOGIN);
+    }
+  }, [authLoading, user]);
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ROUTES.AUTH_LOGIN, {

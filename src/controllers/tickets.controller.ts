@@ -1,7 +1,7 @@
 /**
  * Tickets CRUD for admin API routes.
  */
-import { getAuthSession } from "@/lib/auth-session";
+import { getAuthSession, touchAuthSession } from "@/lib/auth-session";
 import * as TicketModel from "@/models/ticket.model";
 import type { HttpResult } from "./health.controller";
 import { requireRolePermission } from "./_permission";
@@ -61,9 +61,16 @@ async function unauthorized(): Promise<HttpResult<{ ok: false; message: string }
   return { status: 401, body: { ok: false, message: "Unauthorized." } };
 }
 
+async function requireSession() {
+  const session = await getAuthSession();
+  if (!session) return null;
+  await touchAuthSession(session);
+  return session;
+}
+
 export const ticketsController = {
   async create(input: TicketWriteBody): Promise<HttpResult<{ ok: boolean; id?: number; message?: string }>> {
-    const session = await getAuthSession();
+    const session = await requireSession();
     if (!session) return unauthorized();
     const denied = await requireRolePermission(session, "tickets", "create");
     if (denied) return denied;
@@ -99,7 +106,7 @@ export const ticketsController = {
     id: number,
     input: TicketWriteBody,
   ): Promise<HttpResult<{ ok: boolean; message?: string }>> {
-    const session = await getAuthSession();
+    const session = await requireSession();
     if (!session) return unauthorized();
     const denied = await requireRolePermission(session, "tickets", "edit");
     if (denied) return denied;
@@ -132,7 +139,7 @@ export const ticketsController = {
   },
 
   async remove(id: number): Promise<HttpResult<{ ok: boolean; message?: string }>> {
-    const session = await getAuthSession();
+    const session = await requireSession();
     if (!session) return unauthorized();
     const denied = await requireRolePermission(session, "tickets", "delete");
     if (denied) return denied;

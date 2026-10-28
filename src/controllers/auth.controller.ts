@@ -9,7 +9,7 @@ import {
 } from "@/models/settings/user-security.model";
 import { getSecurityQuestionById } from "@/models/settings/security-question.model";
 import { getRolePermissionMapByRoleId } from "@/models/settings/role-permission.model";
-import { clearAuthSession, getAuthSession, setAuthSession } from "@/lib/auth-session";
+import { clearAuthSession, getAuthSession, setAuthSession, touchAuthSession } from "@/lib/auth-session";
 import { ROUTES } from "@/routes/index";
 
 export type HttpResult<T extends object> = { status: number; body: T };
@@ -168,6 +168,10 @@ export const authController = {
           question: null,
         },
       };
+    }
+
+    if (session.securityVerified) {
+      await touchAuthSession(session);
     }
 
     const freshUser = await getUserById(session.userId);
