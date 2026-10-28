@@ -1,0 +1,42 @@
+/**
+ * Models: database access, entities, and domain data operations.
+ */
+export * as HealthModel from "./health.model";
+export * as AgreementModel from "./agreement.model";
+export * as ClinicModel from "./clinic.model";
+export * as ClinicInsuranceModel from "./clinic-insurance.model";
+export * as CommunityServiceModel from "./community-service.model";
+export * as CommunityServiceCategoryModel from "./community-service-category.model";
+export * as ContactTrackModel from "./contact-track.model";
+export * as EducationModel from "./education.model";
+export * as EventStatusModel from "./event-status.model";
+export * as InsuranceModel from "./insurance.model";
+export * as InvoicesModel from "./invoices.model";
+export * as LanguageModel from "./language.model";
+export * as PatientServiceModel from "./patient-service.model";
+export * as PatientServiceCategoryModel from "./patient-service-category.model";
+export * as PaymentsModel from "./payments.model";
+export * as ProductServiceModel from "./product-service.model";
+export * as SettingModel from "./setting.model";
+export * as SurveyModel from "./survey.model";
+export * as SurveyViewModel from "./survey-view.model";
+export * as TicketModel from "./ticket.model";
+export * as UserModel from "./user.model";
+export * as BillingCycleCategoryModel from "./settings/billing-cycle-category.model";
+export * as EducationCategoryModel from "./settings/education-category.model";
+export * as PayTypeModel from "./settings/pay-type.model";
+export * as PaymentCycleModel from "./settings/payment-cycle.model";
+export * as PermissionModel from "./settings/permission.model";
+export * as ProductCategoryModel from "./settings/product-category.model";
+export * as RoleModel from "./settings/role.model";
+export * as RolePermissionModel from "./settings/role-permission.model";
+export * as SecurityQuestionModel from "./settings/security-question.model";
+export * as SurveyCategoryModel from "./settings/survey-category.model";
+export * as SurveyExpirationModel from "./settings/survey-expiration.model";
+export * as SurveyFeedbackModel from "./settings/survey-feedback.model";
+export * as SurveyFooterModel from "./settings/survey-footer.model";
+export * as SurveyQuestionModel from "./settings/survey-question.model";
+export * as SurveyQuestionTypeModel from "./settings/survey-question-type.model";
+export * as SurveyResponseModel from "./settings/survey-response.model";
+export * as SurveyTypeModel from "./settings/survey-type.model";
+export * as UserSecurityModel from "./settings/user-security.model";
