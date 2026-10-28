@@ -106,10 +106,11 @@ function asText(value: unknown): string {
   return String(value);
 }
 
-const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsProps) => {
+const Tickets = ({ initialTickets, clinics, users: initialUsers, loadError = null }: TicketsProps) => {
   const router = useRouter();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<TicketsPageRow[]>(initialTickets);
+  const [users, setUsers] = useState<UserSelectOption[]>(initialUsers);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [filterClinic, setFilterClinic] = useState("all");
@@ -134,6 +135,31 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
   useEffect(() => {
     setTickets(initialTickets);
   }, [initialTickets]);
+
+  useEffect(() => {
+    setUsers(initialUsers);
+  }, [initialUsers]);
+
+  const refreshAssignees = useCallback(async () => {
+    try {
+      const res = await adminFetch(API_ROUTES.TICKETS_ASSIGNEES, { cache: "no-store" });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        users?: UserSelectOption[];
+      };
+      if (res.ok && data.ok && Array.isArray(data.users)) {
+        setUsers(data.users);
+      }
+    } catch (e) {
+      if (!(e instanceof AdminUnauthorizedError)) {
+        // keep existing list on transient errors
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (dialogOpen) void refreshAssignees();
+  }, [dialogOpen, refreshAssignees]);
 
   const clinicNames = useMemo(() => clinics.map((c) => c.name).sort(), [clinics]);
   const userLabels = useMemo(() => users.map((u) => u.label).sort(), [users]);
@@ -732,7 +758,7 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
                   <SelectTrigger id="ticket-assignee" className="h-10">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[min(20rem,70vh)]">
                     <SelectItem value="__none__">None</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={u.id} value={String(u.id)}>
@@ -748,7 +774,7 @@ const Tickets = ({ initialTickets, clinics, users, loadError = null }: TicketsPr
                   <SelectTrigger id="ticket-backup" className="h-10">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[min(20rem,70vh)]">
                     <SelectItem value="__none__">None</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={`b-${u.id}`} value={String(u.id)}>

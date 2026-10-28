@@ -1,6 +1,8 @@
 import Tickets from "@/views/Tickets";
 import { getTicketsPagePayload } from "@/server/tickets-page";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   let loadError: string | null = null;
   const payload = await getTicketsPagePayload().catch((err: unknown) => {

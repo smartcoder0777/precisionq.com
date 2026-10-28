@@ -158,7 +158,9 @@ type UserSelectRow = RowDataPacket & { id: number; fname: string | null; lname: 
 export async function listUsersForTicketSelect(): Promise<UserTicketSelectOption[]> {
   const pool = getPool();
   const [rows] = await pool.execute<UserSelectRow[]>(
-    `SELECT ${qIdent("id")}, ${qIdent("fname")}, ${qIdent("lname")} FROM ${qIdent(TABLE_NAME)} WHERE ${qIdent("status")} = 1 ORDER BY ${qIdent("lname")} ASC, ${qIdent("fname")} ASC`,
+    `SELECT ${qIdent("id")}, ${qIdent("fname")}, ${qIdent("lname")} FROM ${qIdent(TABLE_NAME)}
+     WHERE (${qIdent("status")} = 1 OR ${qIdent("status")} IS NULL)
+     ORDER BY ${qIdent("lname")} ASC, ${qIdent("fname")} ASC, ${qIdent("id")} ASC`,
   );
   return rows.map(r => {
     const label = [r.fname, r.lname].filter(Boolean).join(" ").trim();

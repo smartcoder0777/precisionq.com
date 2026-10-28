@@ -3,6 +3,7 @@
  */
 import { getAuthSession, touchAuthSession } from "@/lib/auth-session";
 import * as TicketModel from "@/models/ticket.model";
+import * as UserModel from "@/models/user.model";
 import type { HttpResult } from "./health.controller";
 import { requireRolePermission } from "./_permission";
 
@@ -69,6 +70,18 @@ async function requireSession() {
 }
 
 export const ticketsController = {
+  async listAssignees(): Promise<
+    HttpResult<{ ok: boolean; users?: UserModel.UserTicketSelectOption[]; message?: string }>
+  > {
+    const session = await requireSession();
+    if (!session) return unauthorized();
+    const denied = await requireRolePermission(session, "tickets", "view");
+    if (denied) return denied;
+
+    const users = await UserModel.listUsersForTicketSelect();
+    return { status: 200, body: { ok: true, users } };
+  },
+
   async create(input: TicketWriteBody): Promise<HttpResult<{ ok: boolean; id?: number; message?: string }>> {
     const session = await requireSession();
     if (!session) return unauthorized();
