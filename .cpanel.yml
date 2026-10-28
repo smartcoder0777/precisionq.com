@@ -1,0 +1,4 @@
+---
+deployment:
+  tasks:
+    - /bin/bash -lc 'npm install --omit=dev'
