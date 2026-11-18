@@ -5,6 +5,7 @@ import { syncConectorClinicsIntoAdmin } from "@/lib/sync-conector-clinics";
 import type { TicketsPagePayload, TicketsPageRow } from "@/types/tickets-page";
 import type { TicketListRecord } from "@/models/ticket.model";
 import * as TicketModel from "@/models/ticket.model";
+import * as TicketTypeModel from "@/models/settings/ticket-type.model";
 import * as UserModel from "@/models/user.model";
 import { formatUsDate } from "@/lib/date-format";
 
@@ -91,28 +92,15 @@ function mapStatus(value: number | null): TicketsPageRow["status"] {
   }
 }
 
-/** Adjust to match your `tickets.type` codes. */
-function mapTicketType(value: number | null): string {
-  if (value == null) return "—";
-  const labels: Record<number, string> = {
-    1: "General",
-    2: "Billing",
-    3: "Appointment",
-    4: "Insurance",
-    5: "Prescription",
-    6: "Complaint",
-    7: "Technical",
-  };
-  return labels[value] ?? `Type ${value}`;
-}
-
-function mapRow(row: TicketListRecord): TicketsPageRow {
+function mapRow(row: TicketListRecord, typeLabels: Map<number, string>): TicketsPageRow {
   const clinic =
     row.clinic_name?.trim() ||
     (row.clinic_id != null ? `Clinic #${row.clinic_id}` : "—");
   const assignee = row.assignee_name?.trim() || "—";
   const backup = row.backup_name?.trim() || "—";
   const creator = row.creator_name?.trim() || "";
+  const typeLabel =
+    row.type != null ? typeLabels.get(row.type) ?? `Type ${row.type}` : "—";
 
   return {
     id: String(row.id),
@@ -127,7 +115,7 @@ function mapRow(row: TicketListRecord): TicketsPageRow {
     backupAssigned: backup,
     backupAssignedId: row.backup_assigned,
     reason: toDisplayString(row.reason),
-    type: mapTicketType(row.type),
+    type: typeLabel,
     typeCode: row.type,
     message: toMessageString(row.message),
     priority: mapPriority(row.priority),
@@ -136,13 +124,22 @@ function mapRow(row: TicketListRecord): TicketsPageRow {
 }
 
 export async function getTicketsPagePayload(): Promise<TicketsPagePayload> {
-  await syncConectorClinicsIntoAdmin();
+  const sync = await syncConectorClinicsIntoAdmin();
+  if (!sync.ok) {
+    console.error("[getTicketsPagePayload] clinic sync:", sync.message);
+  }
 
-  const [rows, clinicRows, users] = await Promise.all([
+  const [rows, clinicRows, users, typeRows] = await Promise.all([
     TicketModel.getTicketsForListView(),
     ClinicModel.getAllClinics(),
     UserModel.listUsersForTicketSelect(),
+    TicketTypeModel.getActiveTicketTypes(),
   ]);
+
+  const typeLabels = new Map<number, string>();
+  for (const t of typeRows) {
+    typeLabels.set(t.id, t.name?.trim() || `Type ${t.id}`);
+  }
 
   const clinics = clinicRows
     .map((c) => ({
@@ -151,9 +148,18 @@ export async function getTicketsPagePayload(): Promise<TicketsPagePayload> {
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
+  const ticketTypes = typeRows.map((t) => ({
+    code: t.id,
+    label: t.name?.trim() || `Type ${t.id}`,
+  }));
+
   return {
-    tickets: rows.map(mapRow),
+    tickets: rows.map((row) => mapRow(row, typeLabels)),
     clinics,
     users,
+    ticketTypes,
+    clinicSyncWarning: sync.ok
+      ? null
+      : sync.message || "Could not sync clinics from Azul / Conector.",
   };
 }

@@ -44,6 +44,7 @@ export const ROLE_PAGE_GROUPS = [
       { key: "settings-billing-cycle", label: "Settings - Billing Cycle", actions: ["view", "edit"] as const },
       { key: "settings-survey", label: "Settings - Survey", actions: ["view", "edit"] as const },
       { key: "settings-qp", label: "Settings - QP", actions: ["view", "edit"] as const },
+      { key: "settings-ticket-types", label: "Settings - Ticket Types", actions: ["view", "edit"] as const },
       { key: "settings-security-question", label: "Settings - Security Question", actions: ["view", "edit"] as const },
     ],
   },
@@ -83,6 +84,7 @@ export function resolvePagePermissionKey(pathname: string): string | null {
   if (pathname.startsWith("/admin/settings/billing-cycle")) return "settings-billing-cycle";
   if (pathname.startsWith("/admin/settings/survey")) return "settings-survey";
   if (pathname.startsWith("/admin/settings/qp")) return "settings-qp";
+  if (pathname.startsWith("/admin/settings/ticket-types")) return "settings-ticket-types";
   if (pathname.startsWith("/admin/settings/security-question")) return "settings-security-question";
   return null;
 }

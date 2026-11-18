@@ -35,7 +35,7 @@ import {
   surveyTypes,
   surveyViews,
 } from "./schema/surveys";
-import { contactTracks, tickets } from "./schema/tickets-contact";
+import { contactTracks, ticketTypes, tickets } from "./schema/tickets-contact";
 import {
   permissions,
   rolePermissions,
@@ -85,5 +85,6 @@ export const drizzleSchema = {
   surveyFooter,
   surveyQuesTypes,
   tickets,
+  ticketTypes,
   contactTracks,
 } as const;

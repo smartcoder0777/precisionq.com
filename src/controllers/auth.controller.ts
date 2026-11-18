@@ -9,7 +9,7 @@ import {
 } from "@/models/settings/user-security.model";
 import { getSecurityQuestionById } from "@/models/settings/security-question.model";
 import { getRolePermissionMapByRoleId } from "@/models/settings/role-permission.model";
-import { clearAuthSession, getAuthSession, setAuthSession, touchAuthSession } from "@/lib/auth-session";
+import { clearAuthSession, getAuthSession, setAuthSession } from "@/lib/auth-session";
 import { ROUTES } from "@/routes/index";
 
 export type HttpResult<T extends object> = { status: number; body: T };
@@ -170,9 +170,8 @@ export const authController = {
       };
     }
 
-    if (session.securityVerified) {
-      await touchAuthSession(session);
-    }
+    // Do not extend the cookie here — session polling must be able to detect idle expiry.
+    // Active API/page handlers call touchAuthSession separately.
 
     const freshUser = await getUserById(session.userId);
     const firstName = freshUser?.fname || session.firstName;

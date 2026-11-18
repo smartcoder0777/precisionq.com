@@ -19,6 +19,7 @@ export { agreementsController } from "./agreements.controller";
 export { productServicesController } from "./product-services.controller";
 export { productCategoriesController } from "./product-categories.controller";
 export { payTypesController } from "./pay-types.controller";
+export { ticketTypesController } from "./ticket-types.controller";
 export { paymentCyclesController } from "./payment-cycles.controller";
 export { billingCycleCategoriesController } from "./billing-cycle-categories.controller";
 export { securityQuestionsController } from "./security-questions.controller";

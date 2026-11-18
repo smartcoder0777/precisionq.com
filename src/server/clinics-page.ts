@@ -3,6 +3,7 @@ import "server-only";
 import * as ClinicInsuranceModel from "@/models/clinic-insurance.model";
 import * as ClinicModel from "@/models/clinic.model";
 import * as InsuranceModel from "@/models/insurance.model";
+import { syncConectorClinicsIntoAdmin } from "@/lib/sync-conector-clinics";
 import type { ClinicsPageClinic, ClinicsPagePayload } from "@/types/clinics-page";
 import { formatUsPhoneDisplay } from "@/lib/phone-format";
 
@@ -14,6 +15,11 @@ function toDisplayString(value: unknown, empty = ""): string {
 }
 
 export async function loadClinicsPagePayload(): Promise<ClinicsPagePayload> {
+  const sync = await syncConectorClinicsIntoAdmin();
+  if (!sync.ok) {
+    console.error("[loadClinicsPagePayload] clinic sync:", sync.message);
+  }
+
   const [clinicRows, insuranceRows] = await Promise.all([
     ClinicModel.getAllClinics(),
     InsuranceModel.getAllInsurances(),

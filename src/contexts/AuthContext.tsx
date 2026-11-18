@@ -1,8 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { API_ROUTES, ROUTES } from "@/routes/index";
 import { ADMIN_SESSION_EXPIRED_EVENT } from "@/lib/admin-fetch";
+
+export const SESSION_EXPIRED_QUERY = "reason=session-expired";
+export const SESSION_EXPIRED_STORAGE_KEY = "care_hub_session_expired";
 
 export interface User {
   id: string;
@@ -34,11 +37,41 @@ export const useAuth = () => {
   return context;
 };
 
+function redirectToLoginExpired() {
+  try {
+    sessionStorage.setItem(SESSION_EXPIRED_STORAGE_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  const target = `${ROUTES.LOGIN}?${SESSION_EXPIRED_QUERY}`;
+  if (window.location.pathname === ROUTES.LOGIN) {
+    window.location.replace(target);
+    return;
+  }
+  window.location.assign(target);
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [securityVerified, setSecurityVerified] = useState(false);
   const [securityQuestion, setSecurityQuestion] = useState<string | null>(null);
+  const wasAuthenticatedRef = useRef(false);
+  const redirectingRef = useRef(false);
+
+  const clearClientAuth = useCallback(() => {
+    setUser(null);
+    setSecurityVerified(false);
+    setSecurityQuestion(null);
+  }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    if (redirectingRef.current) return;
+    redirectingRef.current = true;
+    wasAuthenticatedRef.current = false;
+    clearClientAuth();
+    redirectToLoginExpired();
+  }, [clearClientAuth]);
 
   const refreshSession = useCallback(async () => {
     try {
@@ -51,12 +84,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       if (!data.authenticated || !data.user) {
-        setUser(null);
-        setSecurityVerified(false);
-        setSecurityQuestion(null);
+        if (wasAuthenticatedRef.current) {
+          handleSessionExpired();
+          return;
+        }
+        clearClientAuth();
         return;
       }
 
+      wasAuthenticatedRef.current = true;
       setUser({
         id: data.user.id,
         firstName: data.user.firstName,
@@ -71,22 +107,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setAuthLoading(false);
     }
-  }, []);
+  }, [clearClientAuth, handleSessionExpired]);
 
   useEffect(() => {
     void refreshSession();
   }, [refreshSession]);
 
   useEffect(() => {
-    const onExpired = () => {
-      setUser(null);
-      setSecurityVerified(false);
-      setSecurityQuestion(null);
-      window.location.assign(ROUTES.LOGIN);
-    };
+    const onExpired = () => handleSessionExpired();
     window.addEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
     return () => window.removeEventListener(ADMIN_SESSION_EXPIRED_EVENT, onExpired);
-  }, []);
+  }, [handleSessionExpired]);
 
   useEffect(() => {
     if (authLoading || !user || !securityVerified) return;
@@ -96,7 +127,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const id = window.setInterval(tick, 2 * 60 * 1000);
-    return () => window.clearInterval(id);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refreshSession();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [authLoading, user, securityVerified, refreshSession]);
 
   useEffect(() => {
@@ -104,9 +142,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const path = window.location.pathname;
     const isPublicAdmin = path === ROUTES.LOGIN || path === ROUTES.SECURITY;
     if (!user && path.startsWith("/admin") && !isPublicAdmin) {
+      if (wasAuthenticatedRef.current || sessionStorage.getItem(SESSION_EXPIRED_STORAGE_KEY) === "1") {
+        handleSessionExpired();
+        return;
+      }
       window.location.assign(ROUTES.LOGIN);
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, handleSessionExpired]);
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await fetch(API_ROUTES.AUTH_LOGIN, {
@@ -117,6 +159,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = (await response.json()) as { ok: boolean; nextRoute?: string };
 
     if (data.ok) {
+      try {
+        sessionStorage.removeItem(SESSION_EXPIRED_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+      redirectingRef.current = false;
       await refreshSession();
       return { ok: true, nextRoute: data.nextRoute || ROUTES.SECURITY };
     }
@@ -141,10 +189,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     await fetch(API_ROUTES.AUTH_LOGOUT, { method: "POST" });
-    setUser(null);
-    setSecurityVerified(false);
-    setSecurityQuestion(null);
-  }, []);
+    wasAuthenticatedRef.current = false;
+    redirectingRef.current = false;
+    clearClientAuth();
+  }, [clearClientAuth]);
 
   return (
     <AuthContext.Provider value={{

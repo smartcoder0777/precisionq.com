@@ -31,22 +31,17 @@ import {
 import { cn } from "@/lib/utils";
 import { Search, Ticket, Eye, Plus, Pencil, Trash2, Inbox, Timer, ArchiveX, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ClinicSelectOption, TicketsPageRow, UserSelectOption } from "@/types/tickets-page";
+import type {
+  ClinicSelectOption,
+  TicketTypeSelectOption,
+  TicketsPageRow,
+  UserSelectOption,
+} from "@/types/tickets-page";
 import { useToast } from "@/hooks/use-toast";
 import { API_ROUTES } from "@/routes/index";
 import { adminFetch, AdminUnauthorizedError } from "@/lib/admin-fetch";
 
 const PAGE_SIZE = 10;
-
-const TYPE_OPTIONS = [
-  { code: 1, label: "General" },
-  { code: 2, label: "Billing" },
-  { code: 3, label: "Appointment" },
-  { code: 4, label: "Insurance" },
-  { code: 5, label: "Prescription" },
-  { code: 6, label: "Complaint" },
-  { code: 7, label: "Technical" },
-] as const;
 
 const PRIORITIES: TicketsPageRow["priority"][] = ["High", "Medium", "Low"];
 const STATUSES: TicketsPageRow["status"][] = ["Open", "In Progress", "Resolved", "Closed"];
@@ -83,7 +78,9 @@ type TicketsProps = {
   initialTickets: TicketsPageRow[];
   clinics: ClinicSelectOption[];
   users: UserSelectOption[];
+  ticketTypes: TicketTypeSelectOption[];
   loadError?: string | null;
+  clinicSyncWarning?: string | null;
 };
 
 function formatStatCount(n: number): string {
@@ -106,7 +103,14 @@ function asText(value: unknown): string {
   return String(value);
 }
 
-const Tickets = ({ initialTickets, clinics, users: initialUsers, loadError = null }: TicketsProps) => {
+const Tickets = ({
+  initialTickets,
+  clinics,
+  users: initialUsers,
+  ticketTypes,
+  loadError = null,
+  clinicSyncWarning = null,
+}: TicketsProps) => {
   const router = useRouter();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<TicketsPageRow[]>(initialTickets);
@@ -379,6 +383,12 @@ const Tickets = ({ initialTickets, clinics, users: initialUsers, loadError = nul
       {loadError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           Could not load tickets: {loadError}
+        </div>
+      )}
+
+      {clinicSyncWarning && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          Clinic sync from Azul failed: {clinicSyncWarning}. The clinic list may be incomplete until Conector DB is reachable.
         </div>
       )}
 
@@ -721,7 +731,7 @@ const Tickets = ({ initialTickets, clinics, users: initialUsers, loadError = nul
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TYPE_OPTIONS.map((opt) => (
+                    {ticketTypes.map((opt) => (
                       <SelectItem key={opt.code} value={String(opt.code)}>
                         {opt.label}
                       </SelectItem>

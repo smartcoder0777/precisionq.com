@@ -20,6 +20,15 @@ export const tickets = mysqlTable("tickets", {
   createdAt: datetime("createdAt", { mode: "string" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
+/** Editable ticket type labels; `id` is stored in `tickets.type`. */
+export const ticketTypes = mysqlTable("ticket_types", {
+  id: int("id").autoincrement().primaryKey(),
+  name: v("name", 255),
+  description: text("description"),
+  status: int("status"),
+  sort_order: int("sort_order"),
+});
+
 export const contactTracks = mysqlTable("contact_tracks", {
   id: int("id").autoincrement().primaryKey(),
   case_number: int("case_number"),
@@ -41,4 +50,5 @@ export const contactTracks = mysqlTable("contact_tracks", {
 });
 
 export const TICKETS_COLUMNS = Object.keys(getTableColumns(tickets)) as readonly (keyof typeof tickets.$inferSelect)[];
+export const TICKET_TYPES_COLUMNS = Object.keys(getTableColumns(ticketTypes)) as readonly (keyof typeof ticketTypes.$inferSelect)[];
 export const CONTACT_TRACKS_COLUMNS = Object.keys(getTableColumns(contactTracks)) as readonly (keyof typeof contactTracks.$inferSelect)[];

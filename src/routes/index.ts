@@ -90,6 +90,8 @@ export const API_ROUTES = {
     `/api/product-categories/${encodeURIComponent(String(id))}`,
   PAY_TYPES: "/api/pay-types",
   payType: (id: string | number) => `/api/pay-types/${encodeURIComponent(String(id))}`,
+  TICKET_TYPES: "/api/ticket-types",
+  ticketType: (id: string | number) => `/api/ticket-types/${encodeURIComponent(String(id))}`,
   PAYMENT_CYCLES: "/api/payment-cycles",
   paymentCycle: (id: string | number) => `/api/payment-cycles/${encodeURIComponent(String(id))}`,
   BILLING_CYCLE_CATEGORIES: "/api/billing-cycle-categories",

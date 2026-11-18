@@ -23,6 +23,7 @@ import {
   Palette,
   ShieldQuestion,
   Users,
+  Ticket,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,6 +63,12 @@ const SETTINGS_GROUPS = [
     items: [
       { title: "Survey Settings", path: adminPage("/settings/survey"), icon: ClipboardList },
       { title: "QP Setting", path: adminPage("/settings/qp"), icon: Palette },
+    ],
+  },
+  {
+    label: "Tickets",
+    items: [
+      { title: "Ticket Types", path: adminPage("/settings/ticket-types"), icon: Ticket },
     ],
   },
   {

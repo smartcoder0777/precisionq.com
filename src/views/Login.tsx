@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { SESSION_EXPIRED_STORAGE_KEY, useAuth } from "@/contexts/AuthContext";
 import { ROUTES } from "@/routes/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,16 +14,29 @@ import { Activity, AlertCircle, Lock, Mail, X } from "lucide-react";
 
 type LoginProps = {
   securityAnswerFailed?: boolean;
+  sessionExpired?: boolean;
 };
 
-const Login = ({ securityAnswerFailed = false }: LoginProps) => {
+const Login = ({ securityAnswerFailed = false, sessionExpired = false }: LoginProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSecurityFailureAlert, setShowSecurityFailureAlert] = useState(securityAnswerFailed);
+  const [showSessionExpiredAlert, setShowSessionExpiredAlert] = useState(sessionExpired);
   const { login } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(SESSION_EXPIRED_STORAGE_KEY) === "1") {
+        setShowSessionExpiredAlert(true);
+        sessionStorage.removeItem(SESSION_EXPIRED_STORAGE_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +89,23 @@ const Login = ({ securityAnswerFailed = false }: LoginProps) => {
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {showSessionExpiredAlert && (
+                <Alert variant="destructive" className="relative pr-10">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Session expired</AlertTitle>
+                  <AlertDescription>
+                    You were signed out because your session ended. Please sign in again to continue.
+                  </AlertDescription>
+                  <button
+                    type="button"
+                    onClick={() => setShowSessionExpiredAlert(false)}
+                    className="absolute right-3 top-3 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    aria-label="Dismiss alert"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Alert>
+              )}
               {showSecurityFailureAlert && (
                 <Alert variant="destructive" className="relative pr-10">
                   <AlertCircle className="h-4 w-4" />

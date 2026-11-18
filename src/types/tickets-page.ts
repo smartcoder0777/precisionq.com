@@ -24,9 +24,12 @@ export type TicketsPageRow = {
 
 export type ClinicSelectOption = { id: number; name: string };
 export type UserSelectOption = { id: number; label: string };
+export type TicketTypeSelectOption = { code: number; label: string };
 
 export type TicketsPagePayload = {
   tickets: TicketsPageRow[];
   clinics: ClinicSelectOption[];
   users: UserSelectOption[];
+  ticketTypes: TicketTypeSelectOption[];
+  clinicSyncWarning?: string | null;
 };

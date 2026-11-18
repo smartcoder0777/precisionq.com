@@ -2,6 +2,7 @@ import PlaceholderPage from "@/views/PlaceholderPage";
 import EducationCategoriesSettings from "@/views/EducationCategoriesSettings";
 import ProductCategoriesSettings from "@/views/ProductCategoriesSettings";
 import PayTypesSettings from "@/views/PayTypesSettings";
+import TicketTypesSettings from "@/views/TicketTypesSettings";
 import PaymentCyclesSettings from "@/views/PaymentCyclesSettings";
 import BillingCycleCategoriesSettings from "@/views/BillingCycleCategoriesSettings";
 import SecurityQuestionsSettings from "@/views/SecurityQuestionsSettings";
@@ -11,6 +12,7 @@ import QpSettings from "@/views/QpSettings";
 import { loadEducationCategoriesPagePayload } from "@/server/education-categories-page";
 import { loadProductCategoriesPagePayload } from "@/server/product-categories-page";
 import { loadPayTypesPagePayload } from "@/server/pay-types-page";
+import { loadTicketTypesPagePayload } from "@/server/ticket-types-page";
 import { loadPaymentCyclesPagePayload } from "@/server/payment-cycles-page";
 import { loadBillingCycleCategoriesPagePayload } from "@/server/billing-cycle-categories-page";
 import { loadSecurityQuestionsPagePayload } from "@/server/security-questions-page";
@@ -40,6 +42,10 @@ export default async function Page({ params }: PageProps) {
   if (section === "pay-type") {
     const payload = await loadPayTypesPagePayload();
     return <PayTypesSettings initialRows={payload.rows} />;
+  }
+  if (section === "ticket-types") {
+    const payload = await loadTicketTypesPagePayload();
+    return <TicketTypesSettings initialRows={payload.rows} />;
   }
   if (section === "payment-cycle") {
     const payload = await loadPaymentCyclesPagePayload();

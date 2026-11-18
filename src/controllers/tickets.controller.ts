@@ -2,6 +2,7 @@
  * Tickets CRUD for admin API routes.
  */
 import { getAuthSession, touchAuthSession } from "@/lib/auth-session";
+import { notifyTicketCreated, notifyTicketUpdated } from "@/lib/ticket-email";
 import * as TicketModel from "@/models/ticket.model";
 import * as UserModel from "@/models/user.model";
 import type { HttpResult } from "./health.controller";
@@ -108,6 +109,12 @@ export const ticketsController = {
         priority: priorityToDb(String(input.priority ?? "Medium")),
         status: statusToDb(String(input.status ?? "Open")),
       });
+      const created = await TicketModel.getTicketById(id);
+      if (created) {
+        void notifyTicketCreated(created).catch((err) => {
+          console.error("[ticketsController.create] email failed", err);
+        });
+      }
       return { status: 201, body: { ok: true, id } };
     } catch (e) {
       const message = e instanceof Error ? e.message : "Create failed.";
@@ -144,6 +151,12 @@ export const ticketsController = {
         return { status: 404, body: { ok: false, message: "Ticket not found." } };
       }
       await TicketModel.updateTicketById(id, patch);
+      const updated = await TicketModel.getTicketById(id);
+      if (updated) {
+        void notifyTicketUpdated(existing, updated).catch((err) => {
+          console.error("[ticketsController.update] email failed", err);
+        });
+      }
       return { status: 200, body: { ok: true } };
     } catch (e) {
       const message = e instanceof Error ? e.message : "Update failed.";

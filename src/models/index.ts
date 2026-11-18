@@ -25,6 +25,7 @@ export * as UserModel from "./user.model";
 export * as BillingCycleCategoryModel from "./settings/billing-cycle-category.model";
 export * as EducationCategoryModel from "./settings/education-category.model";
 export * as PayTypeModel from "./settings/pay-type.model";
+export * as TicketTypeModel from "./settings/ticket-type.model";
 export * as PaymentCycleModel from "./settings/payment-cycle.model";
 export * as PermissionModel from "./settings/permission.model";
 export * as ProductCategoryModel from "./settings/product-category.model";
