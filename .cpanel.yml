@@ -1,4 +1,9 @@
 ---
 deployment:
   tasks:
-    - /bin/bash -lc 'npm install --omit=dev'
+    # Install all deps (incl. TypeScript) so `next build` can run, then prune.
+    - /bin/bash -lc 'npm install'
+    - /bin/bash -lc 'npm run build'
+    - /bin/bash -lc 'npm prune --omit=dev'
+    # Passenger / Node.js App restart signal
+    - /bin/bash -lc 'mkdir -p tmp && touch tmp/restart.txt'
