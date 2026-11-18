@@ -29,7 +29,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
-import { Search, Ticket, Eye, Plus, Pencil, Trash2, Inbox, Timer, ArchiveX, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, Ticket, Eye, Plus, Pencil, Trash2, Inbox, Timer, ArchiveX, ChevronsLeft, ChevronsRight, Mail } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type {
   ClinicSelectOption,
@@ -79,6 +79,8 @@ type TicketsProps = {
   clinics: ClinicSelectOption[];
   users: UserSelectOption[];
   ticketTypes: TicketTypeSelectOption[];
+  canViewAll?: boolean;
+  currentUserId?: number | null;
   loadError?: string | null;
   clinicSyncWarning?: string | null;
 };
@@ -108,6 +110,8 @@ const Tickets = ({
   clinics,
   users: initialUsers,
   ticketTypes,
+  canViewAll = false,
+  currentUserId = null,
   loadError = null,
   clinicSyncWarning = null,
 }: TicketsProps) => {
@@ -118,7 +122,9 @@ const Tickets = ({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [filterClinic, setFilterClinic] = useState("all");
-  const [filterAssigned, setFilterAssigned] = useState("all");
+  const [filterAssigned, setFilterAssigned] = useState(() =>
+    canViewAll ? "all" : currentUserId != null ? String(currentUserId) : "all",
+  );
   const [filterStatus, setFilterStatus] = useState("all");
   const [previewTicket, setPreviewTicket] = useState<TicketsPageRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -126,6 +132,7 @@ const Tickets = ({
   const [deleteTicket, setDeleteTicket] = useState<TicketsPageRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
 
   const [fClinicId, setFClinicId] = useState("");
   const [fType, setFType] = useState("");
@@ -166,7 +173,6 @@ const Tickets = ({
   }, [dialogOpen, refreshAssignees]);
 
   const clinicNames = useMemo(() => clinics.map((c) => c.name).sort(), [clinics]);
-  const userLabels = useMemo(() => users.map((u) => u.label).sort(), [users]);
 
   const filtered = useMemo(
     () =>
@@ -175,7 +181,10 @@ const Tickets = ({
           .toLowerCase()
           .includes(search.toLowerCase());
         const matchClinic = filterClinic === "all" || t.clinic === filterClinic;
-        const matchAssigned = filterAssigned === "all" || t.assignedTo === filterAssigned;
+        const matchAssigned =
+          filterAssigned === "all" ||
+          String(t.assignedToId ?? "") === filterAssigned ||
+          String(t.backupAssignedId ?? "") === filterAssigned;
         const matchStatus = filterStatus === "all" || t.status === filterStatus;
         return matchSearch && matchClinic && matchAssigned && matchStatus;
       }),
@@ -194,11 +203,30 @@ const Tickets = ({
     setPage((p) => Math.min(p, totalPages));
   }, [totalPages]);
 
+  const selectedUserLabel = useMemo(() => {
+    if (filterAssigned === "all") return null;
+    return users.find((u) => String(u.id) === filterAssigned)?.label ?? null;
+  }, [filterAssigned, users]);
+
+  const reportUserId = useMemo(() => {
+    if (filterAssigned !== "all") return Number(filterAssigned);
+    if (!canViewAll && currentUserId != null) return currentUserId;
+    return null;
+  }, [filterAssigned, canViewAll, currentUserId]);
+
   const stats = useMemo(() => {
-    const total = tickets.length;
-    const open = tickets.filter((t) => t.status === "Open").length;
-    const inProgress = tickets.filter((t) => t.status === "In Progress").length;
-    const closed = tickets.filter((t) => t.status === "Closed").length;
+    const total = filtered.length;
+    const open = filtered.filter((t) => t.status === "Open").length;
+    const inProgress = filtered.filter((t) => t.status === "In Progress").length;
+    const closed = filtered.filter((t) => t.status === "Closed" || t.status === "Resolved").length;
+    const scope =
+      selectedUserLabel != null
+        ? selectedUserLabel
+        : filterAssigned === "all"
+          ? canViewAll
+            ? "All records"
+            : "My assignments"
+          : "Filtered";
     const rows: {
       title: string;
       value: string;
@@ -210,7 +238,7 @@ const Tickets = ({
       {
         title: "Total tickets",
         value: formatStatCount(total),
-        subtitle: "All records",
+        subtitle: scope,
         icon: Ticket,
         cardClass: "border-l-4 border-l-violet-600 bg-violet-600/[0.06]",
         iconWrapClass: "bg-violet-600/15 text-violet-700 dark:text-violet-300",
@@ -218,7 +246,7 @@ const Tickets = ({
       {
         title: "Open",
         value: formatStatCount(open),
-        subtitle: "Status: open",
+        subtitle: scope,
         icon: Inbox,
         cardClass: "border-l-4 border-l-sky-500 bg-sky-500/[0.07]",
         iconWrapClass: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
@@ -226,7 +254,7 @@ const Tickets = ({
       {
         title: "In progress",
         value: formatStatCount(inProgress),
-        subtitle: "Status: in progress",
+        subtitle: scope,
         icon: Timer,
         cardClass: "border-l-4 border-l-amber-500 bg-amber-500/[0.08]",
         iconWrapClass: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
@@ -234,14 +262,14 @@ const Tickets = ({
       {
         title: "Closed",
         value: formatStatCount(closed),
-        subtitle: "Status: closed",
+        subtitle: "Resolved & closed",
         icon: ArchiveX,
         cardClass: "border-l-4 border-l-emerald-600 bg-emerald-600/[0.06]",
         iconWrapClass: "bg-emerald-600/15 text-emerald-800 dark:text-emerald-300",
       },
     ];
     return rows;
-  }, [tickets]);
+  }, [filtered, selectedUserLabel, filterAssigned, canViewAll]);
 
   const goPage = useCallback(
     (next: number) => {
@@ -337,6 +365,50 @@ const Tickets = ({
     }
   };
 
+  const handleSendReport = async () => {
+    if (reportUserId == null || !Number.isFinite(reportUserId)) {
+      toast({
+        title: "Select a user",
+        description: "Choose a person in the Assigned filter to email their status report.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSendingReport(true);
+    try {
+      const res = await adminFetch(API_ROUTES.TICKETS_REPORT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: reportUserId }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) {
+        toast({
+          variant: "destructive",
+          title: "Email failed",
+          description: data.message || res.statusText,
+        });
+        return;
+      }
+      toast({
+        title: "Report sent",
+        description: data.message || "Quality Assignment Status Report emailed.",
+      });
+    } catch (e) {
+      if (e instanceof AdminUnauthorizedError) {
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please sign in again to continue.",
+        });
+        return;
+      }
+      toast({ variant: "destructive", title: "Email failed", description: "Network error." });
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deleteTicket) return;
     setRemoving(true);
@@ -370,14 +442,33 @@ const Tickets = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Tickets</h1>
-          <p className="text-muted-foreground text-sm mt-1">Support tickets from the database</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {canViewAll
+              ? "Managers and admins can view all tickets. Select a user to see their personal report."
+              : "You only see tickets assigned to you."}
+          </p>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="h-4 w-4 mr-2" /> Add ticket
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSendReport}
+            disabled={sendingReport || reportUserId == null}
+            title={
+              reportUserId == null
+                ? "Select a user in Assigned To to email a report"
+                : "Email Quality Assignment Status Report"
+            }
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            {sendingReport ? "Sending…" : "Email report"}
+          </Button>
+          <Button onClick={openAdd}>
+            <Plus className="h-4 w-4 mr-2" /> Add ticket
+          </Button>
+        </div>
       </div>
 
       {loadError && (
@@ -434,15 +525,19 @@ const Tickets = ({
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterAssigned} onValueChange={setFilterAssigned}>
-          <SelectTrigger className="w-44">
+        <Select
+          value={filterAssigned}
+          onValueChange={setFilterAssigned}
+          disabled={!canViewAll && currentUserId != null}
+        >
+          <SelectTrigger className="w-52">
             <SelectValue placeholder="Assigned To" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Assigned</SelectItem>
-            {userLabels.map((a) => (
-              <SelectItem key={a} value={a}>
-                {a}
+            {canViewAll && <SelectItem value="all">All Assigned</SelectItem>}
+            {users.map((u) => (
+              <SelectItem key={u.id} value={String(u.id)}>
+                {u.label}
               </SelectItem>
             ))}
           </SelectContent>

@@ -34,13 +34,34 @@ export type TicketListRecord = TicketRecord & {
   creator_name: string | null;
 };
 
+export type TicketListViewOptions = {
+  limit?: number;
+  /** When set, only tickets where this user is primary or backup assignee. */
+  assignedUserId?: number | null;
+};
+
 /**
  * Tickets for admin list: clinic, assignees, creator (`user_id` → users), `createdAt`.
  * Assumes `tickets.clinic_id` references `clinics.id`.
  */
-export async function getTicketsForListView(limit = 10_000): Promise<TicketListRecord[]> {
+export async function getTicketsForListView(
+  limitOrOptions: number | TicketListViewOptions = 10_000,
+): Promise<TicketListRecord[]> {
+  const options: TicketListViewOptions =
+    typeof limitOrOptions === "number" ? { limit: limitOrOptions } : limitOrOptions;
+  const limit = options.limit ?? 10_000;
+  const assignedUserId = options.assignedUserId ?? null;
+
   const pool = getPool();
   const cols = COLUMNS.map((c) => (c === "createdAt" ? "t.`createdAt`" : `t.${c}`)).join(", ");
+  const params: (string | number)[] = [];
+  let where = "";
+  if (assignedUserId != null && Number.isFinite(assignedUserId) && assignedUserId > 0) {
+    where = "WHERE (t.assigned_to = ? OR t.backup_assigned = ?)";
+    params.push(assignedUserId, assignedUserId);
+  }
+  params.push(limit);
+
   const sql = `
 SELECT
   ${cols},
@@ -53,10 +74,11 @@ LEFT JOIN clinics c ON c.id = t.clinic_id
 LEFT JOIN users u1 ON u1.id = t.assigned_to
 LEFT JOIN users u2 ON u2.id = t.backup_assigned
 LEFT JOIN users uc ON uc.id = t.user_id
+${where}
 ORDER BY t.id DESC
 LIMIT ?
 `;
-  const [rows] = await pool.execute<TicketListRecord[]>(sql, [limit]);
+  const [rows] = await pool.execute<TicketListRecord[]>(sql, params);
   return rows;
 }
 

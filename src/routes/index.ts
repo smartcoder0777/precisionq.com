@@ -55,6 +55,7 @@ export const API_ROUTES = {
   dashboardContactTrack: (id: string) => `/api/dashboard/contact-tracks/${encodeURIComponent(id)}`,
   TICKETS: "/api/tickets",
   TICKETS_ASSIGNEES: "/api/tickets/assignees",
+  TICKETS_REPORT: "/api/tickets/report",
   ticket: (id: string) => `/api/tickets/${encodeURIComponent(id)}`,
   CLINICS: "/api/clinics",
   clinic: (id: string | number) => `/api/clinics/${encodeURIComponent(String(id))}`,

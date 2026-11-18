@@ -2,6 +2,8 @@ import "server-only";
 
 import * as ClinicModel from "@/models/clinic.model";
 import { syncConectorClinicsIntoAdmin } from "@/lib/sync-conector-clinics";
+import { canViewAllTickets } from "@/lib/ticket-access";
+import { getAuthSession } from "@/lib/auth-session";
 import type { TicketsPagePayload, TicketsPageRow } from "@/types/tickets-page";
 import type { TicketListRecord } from "@/models/ticket.model";
 import * as TicketModel from "@/models/ticket.model";
@@ -124,13 +126,30 @@ function mapRow(row: TicketListRecord, typeLabels: Map<number, string>): Tickets
 }
 
 export async function getTicketsPagePayload(): Promise<TicketsPagePayload> {
+  const session = await getAuthSession();
+  if (!session) {
+    return {
+      tickets: [],
+      clinics: [],
+      users: [],
+      ticketTypes: [],
+      canViewAll: false,
+      currentUserId: null,
+      clinicSyncWarning: null,
+    };
+  }
+
+  const viewAll = await canViewAllTickets(session);
+
   const sync = await syncConectorClinicsIntoAdmin();
   if (!sync.ok) {
     console.error("[getTicketsPagePayload] clinic sync:", sync.message);
   }
 
   const [rows, clinicRows, users, typeRows] = await Promise.all([
-    TicketModel.getTicketsForListView(),
+    TicketModel.getTicketsForListView({
+      assignedUserId: viewAll ? null : session.userId,
+    }),
     ClinicModel.getAllClinics(),
     UserModel.listUsersForTicketSelect(),
     TicketTypeModel.getActiveTicketTypes(),
@@ -156,8 +175,10 @@ export async function getTicketsPagePayload(): Promise<TicketsPagePayload> {
   return {
     tickets: rows.map((row) => mapRow(row, typeLabels)),
     clinics,
-    users,
+    users: viewAll ? users : users.filter((u) => u.id === session.userId),
     ticketTypes,
+    canViewAll: viewAll,
+    currentUserId: session.userId,
     clinicSyncWarning: sync.ok
       ? null
       : sync.message || "Could not sync clinics from Azul / Conector.",

@@ -12,6 +12,8 @@ export default async function Page() {
       clinics: [],
       users: [],
       ticketTypes: [],
+      canViewAll: false,
+      currentUserId: null,
       clinicSyncWarning: null,
     };
   });
@@ -22,6 +24,8 @@ export default async function Page() {
       clinics={payload.clinics}
       users={payload.users}
       ticketTypes={payload.ticketTypes}
+      canViewAll={payload.canViewAll}
+      currentUserId={payload.currentUserId}
       loadError={loadError}
       clinicSyncWarning={payload.clinicSyncWarning}
     />

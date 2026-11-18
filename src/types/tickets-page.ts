@@ -31,5 +31,8 @@ export type TicketsPagePayload = {
   clinics: ClinicSelectOption[];
   users: UserSelectOption[];
   ticketTypes: TicketTypeSelectOption[];
+  /** Managers / admins / super admins see every ticket; others only their assignments. */
+  canViewAll: boolean;
+  currentUserId: number | null;
   clinicSyncWarning?: string | null;
 };

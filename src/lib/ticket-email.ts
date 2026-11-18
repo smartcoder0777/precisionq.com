@@ -333,3 +333,133 @@ export async function notifyTicketUpdated(
     }
   }
 }
+
+export type TicketStatusReportRow = {
+  id: number;
+  clinic: string;
+  reason: string;
+  type: string;
+  priority: string;
+  status: string;
+  assignedTo: string;
+};
+
+function formatReportSubjectDate(d = new Date()): string {
+  const raw = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return raw.replace(",", "");
+}
+
+/**
+ * Progress report for a user's assigned tickets.
+ * Subject: `{FirstName} - Quality Assignment Status Report — {Mon D YYYY}`
+ * Sent to the user and site admins / managers / super admins.
+ */
+export async function sendTicketStatusReport(input: {
+  subjectFirstName: string;
+  recipientEmail: string;
+  recipientName: string;
+  adminEmails: string[];
+  tickets: TicketStatusReportRow[];
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!isSmtpConfigured()) {
+    return { ok: false, message: "Email is not configured (MAIL_* / SMTP_*)." };
+  }
+
+  const firstName = input.subjectFirstName.trim() || "User";
+  const dateLabel = formatReportSubjectDate();
+  const subject = `${firstName} - Quality Assignment Status Report — ${dateLabel}`;
+
+  const open = input.tickets.filter((t) => t.status === "Open").length;
+  const inProgress = input.tickets.filter((t) => t.status === "In Progress").length;
+  const resolved = input.tickets.filter((t) => t.status === "Resolved").length;
+  const closed = input.tickets.filter((t) => t.status === "Closed").length;
+
+  const tableRows =
+    input.tickets.length === 0
+      ? `<tr><td colspan="6" style="padding:12px; color:#64748b;">No assigned tickets.</td></tr>`
+      : input.tickets
+          .map(
+            (t) => `<tr>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">#${esc(t.id)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">${esc(t.clinic)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">${esc(t.reason)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">${esc(t.type)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">${esc(t.priority)}</td>
+              <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:13px;">${esc(t.status)}</td>
+            </tr>`,
+          )
+          .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;">
+    <tr><td align="center" style="padding:28px 12px;">
+      <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+        <tr><td style="background:#0f766e;padding:22px 28px;">
+          <div style="color:#ecfdf5;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">PrecisionQ</div>
+          <div style="color:#fff;font-size:20px;font-weight:700;margin-top:6px;">Quality Assignment Status Report</div>
+          <div style="color:#ccfbf1;font-size:13px;margin-top:6px;">${esc(firstName)} · ${esc(dateLabel)}</div>
+        </td></tr>
+        <tr><td style="padding:24px 28px;">
+          <p style="margin:0 0 14px;font-size:15px;color:#0f172a;">Hi ${esc(input.recipientName)},</p>
+          <p style="margin:0 0 18px;font-size:14px;color:#334155;line-height:1.5;">Here is the current progress report for assigned tickets.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
+            <tr>
+              <td style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;width:25%;"><div style="font-size:11px;color:#64748b;font-weight:700;">TOTAL</div><div style="font-size:20px;font-weight:700;color:#0f172a;">${input.tickets.length}</div></td>
+              <td style="width:8px;"></td>
+              <td style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;width:25%;"><div style="font-size:11px;color:#64748b;font-weight:700;">OPEN</div><div style="font-size:20px;font-weight:700;color:#0f172a;">${open}</div></td>
+              <td style="width:8px;"></td>
+              <td style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;width:25%;"><div style="font-size:11px;color:#64748b;font-weight:700;">IN PROGRESS</div><div style="font-size:20px;font-weight:700;color:#0f172a;">${inProgress}</div></td>
+              <td style="width:8px;"></td>
+              <td style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;text-align:center;width:25%;"><div style="font-size:11px;color:#64748b;font-weight:700;">RESOLVED / CLOSED</div><div style="font-size:20px;font-weight:700;color:#0f172a;">${resolved + closed}</div></td>
+            </tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+            <tr style="background:#f1f5f9;">
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">No</th>
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">Clinic</th>
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">Reason</th>
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">Type</th>
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">Priority</th>
+              <th align="left" style="padding:8px 10px;font-size:11px;color:#64748b;">Status</th>
+            </tr>
+            ${tableRows}
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    subject,
+    "",
+    `Hi ${input.recipientName},`,
+    "Here is the current progress report for assigned tickets.",
+    "",
+    `Total: ${input.tickets.length}`,
+    `Open: ${open}`,
+    `In Progress: ${inProgress}`,
+    `Resolved: ${resolved}`,
+    `Closed: ${closed}`,
+    "",
+    ...input.tickets.map(
+      (t) => `#${t.id} | ${t.clinic} | ${t.reason} | ${t.type} | ${t.priority} | ${t.status}`,
+    ),
+  ].join("\n");
+
+  const toList = [input.recipientEmail, ...input.adminEmails]
+    .map((e) => e.trim())
+    .filter(Boolean);
+  const uniqueTo = [...new Set(toList)];
+
+  return sendSurveyEmail({
+    to: uniqueTo.join(","),
+    subject,
+    html,
+    text,
+  });
+}
