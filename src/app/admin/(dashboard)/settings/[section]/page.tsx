@@ -9,6 +9,7 @@ import SecurityQuestionsSettings from "@/views/SecurityQuestionsSettings";
 import RolesPermissions from "@/views/RolesPermissions";
 import GeneralSettings from "@/views/GeneralSettings";
 import QpSettings from "@/views/QpSettings";
+import PaymentSettings from "@/views/PaymentSettings";
 import { loadEducationCategoriesPagePayload } from "@/server/education-categories-page";
 import { loadProductCategoriesPagePayload } from "@/server/product-categories-page";
 import { loadPayTypesPagePayload } from "@/server/pay-types-page";
@@ -19,6 +20,7 @@ import { loadSecurityQuestionsPagePayload } from "@/server/security-questions-pa
 import { loadRolesPermissionsPagePayload } from "@/server/roles-permissions-page";
 import { loadGeneralSettings } from "@/server/general-settings";
 import { loadQpSettingsPagePayload } from "@/server/qp-settings-page";
+import { loadPaymentSettingsPagePayload } from "@/server/payment-settings-page";
 
 type PageProps = {
   params: Promise<{ section: string }>;
@@ -66,6 +68,10 @@ export default async function Page({ params }: PageProps) {
   if (section === "qp") {
     const payload = await loadQpSettingsPagePayload();
     return <QpSettings initialWords={payload.words} initialSettings={payload.settings} />;
+  }
+  if (section === "payments") {
+    const payload = await loadPaymentSettingsPagePayload();
+    return <PaymentSettings initial={payload} />;
   }
 
   return <PlaceholderPage />;

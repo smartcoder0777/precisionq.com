@@ -15,6 +15,15 @@ import {
   productCategories,
   productServices,
 } from "./schema/education-products";
+import {
+  orderItems,
+  orders,
+  paymentSettings,
+  walletAccounts,
+  walletLedger,
+  webhookEvents,
+  withdrawals,
+} from "./schema/payments-ledger";
 import { patientServiceCats, patientServices } from "./schema/patient-services";
 import {
   eventStatus,
@@ -74,6 +83,13 @@ export const drizzleSchema = {
   productServices,
   payments,
   invoices,
+  orders,
+  orderItems,
+  walletAccounts,
+  walletLedger,
+  withdrawals,
+  paymentSettings,
+  webhookEvents,
   surveys,
   surveyViews,
   surveyCategories,

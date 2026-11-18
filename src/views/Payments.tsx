@@ -12,11 +12,13 @@ import { type VariantProps } from "class-variance-authority";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Search, Trash2, CreditCard, FileText, Trash } from "lucide-react";
+import { Search, Trash2, CreditCard, FileText, Trash, ShoppingCart } from "lucide-react";
+import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { API_ROUTES } from "@/routes";
+import { API_ROUTES, adminPage } from "@/routes";
 import type { PaymentPageRow, PaymentsPagePayload } from "@/types/payments-page";
 import { formatUsPhoneDisplay } from "@/lib/phone-format";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const PAGE_SIZE = 10;
 
@@ -49,10 +51,12 @@ const formatMoney = (amount: number, currency: string) => {
 
 export type PaymentsProps = PaymentsPagePayload;
 
-const Payments = ({ rows: initialRows }: PaymentsProps) => {
+const Payments = ({ rows: initialRows, canDeleteAll = false }: PaymentsProps) => {
   const router = useRouter();
   const [payments, setPayments] = useState<PaymentPageRow[]>(initialRows);
   const [search, setSearch] = useState("");
+  const [filterMethod, setFilterMethod] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [deletePayment, setDeletePayment] = useState<PaymentPageRow | null>(null);
   const [deleteAll, setDeleteAll] = useState(false);
   const [invoicePayment, setInvoicePayment] = useState<PaymentPageRow | null>(null);
@@ -64,10 +68,15 @@ const Payments = ({ rows: initialRows }: PaymentsProps) => {
 
   const filtered = useMemo(
     () =>
-      payments.filter(p =>
-        `${p.paymentId} ${p.customerName} ${p.email} ${p.phone} ${p.status}`.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [payments, search],
+      payments.filter((p) => {
+        const matchSearch = `${p.paymentId} ${p.customerName} ${p.email} ${p.phone} ${p.status} ${p.provider} ${p.method}`
+          .toLowerCase()
+          .includes(search.toLowerCase());
+        const matchMethod = filterMethod === "all" || p.method.toLowerCase() === filterMethod;
+        const matchStatus = filterStatus === "all" || p.status === filterStatus;
+        return matchSearch && matchMethod && matchStatus;
+      }),
+    [payments, search, filterMethod, filterStatus],
   );
   const { pagedItems, page, totalPages, totalItems, rangeFrom, rangeTo, goPage } = usePagedList(filtered, PAGE_SIZE, search);
 
@@ -114,25 +123,61 @@ const Payments = ({ rows: initialRows }: PaymentsProps) => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Payments</h1>
-          <p className="text-muted-foreground text-sm mt-1">View payment transactions from the payments table</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Marketplace pay-ins (card, bank, PayPal) and settlement records
+          </p>
         </div>
-        <Button variant="destructive" onClick={() => setDeleteAll(true)} disabled={payments.length === 0}>
-          <Trash className="h-4 w-4 mr-2" /> Remove All
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={adminPage("/checkout")}>
+              <ShoppingCart className="h-4 w-4 mr-2" /> Checkout
+            </Link>
+          </Button>
+          {canDeleteAll && (
+            <Button variant="destructive" onClick={() => setDeleteAll(true)} disabled={payments.length === 0}>
+              <Trash className="h-4 w-4 mr-2" /> Remove All
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" /> Transactions ({filtered.length})
             </CardTitle>
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search payments..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-56">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search payments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              </div>
+              <Select value={filterMethod} onValueChange={setFilterMethod}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All methods</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="paypal">PayPal</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All status</SelectItem>
+                  <SelectItem value="succeeded">Succeeded</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -141,28 +186,30 @@ const Payments = ({ rows: initialRows }: PaymentsProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Payment ID</TableHead>
-                <TableHead>Customer Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone Number</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Card Number</TableHead>
+                <TableHead>Order</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedItems.map(p => (
+              {pagedItems.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-medium font-mono text-xs">{p.paymentId}</TableCell>
-                  <TableCell>{p.customerName}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatUsPhoneDisplay(p.phone)}</TableCell>
-                  <TableCell className="font-medium">{formatMoney(p.amount, p.currency)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <span className="font-mono">•••• {p.cardLast4}</span>
-                    <span className="ml-1 text-xs text-muted-foreground">({p.cardBrand})</span>
+                  <TableCell className="font-medium font-mono text-xs max-w-[140px] truncate" title={p.paymentId}>
+                    {p.paymentId}
                   </TableCell>
+                  <TableCell className="capitalize">{p.provider}</TableCell>
+                  <TableCell className="capitalize">{p.method}</TableCell>
+                  <TableCell>
+                    <div>{p.customerName}</div>
+                    <div className="text-xs text-muted-foreground">{p.email}</div>
+                  </TableCell>
+                  <TableCell className="font-medium">{formatMoney(p.amount, p.currency)}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.invoiceId}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariant(p.status)} className="capitalize">
                       {p.status}
@@ -200,6 +247,7 @@ const Payments = ({ rows: initialRows }: PaymentsProps) => {
                   </TableCell>
                 </TableRow>
               )}
+
             </TableBody>
           </Table>
           <DataTablePagination
@@ -248,12 +296,14 @@ const Payments = ({ rows: initialRows }: PaymentsProps) => {
                     <p className="font-medium">{invoicePayment.createdAt}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Payment ID</span>
-                    <p className="font-medium font-mono text-xs">{invoicePayment.paymentId}</p>
+                    <span className="text-muted-foreground">Provider / method</span>
+                    <p className="font-medium capitalize">
+                      {invoicePayment.provider} · {invoicePayment.method}
+                    </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Card</span>
-                    <p className="font-medium font-mono">•••• {invoicePayment.cardLast4}</p>
+                    <span className="text-muted-foreground">Payment ID</span>
+                    <p className="font-medium font-mono text-xs">{invoicePayment.paymentId}</p>
                   </div>
                 </div>
                 <div className="border-t border-border pt-3">

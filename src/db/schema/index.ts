@@ -18,5 +18,6 @@ export * from "./settings-ref";
 export * from "./clinics-agreements";
 export * from "./patient-services";
 export * from "./education-products";
+export * from "./payments-ledger";
 export * from "./surveys";
 export * from "./tickets-contact";

@@ -2,6 +2,7 @@
  * Admin operations on `payments` (read via server page; delete via API).
  */
 import { getAuthSession } from "@/lib/auth-session";
+import { canViewAllTickets } from "@/lib/ticket-access";
 import * as PaymentsModel from "@/models/payments.model";
 import type { HttpResult } from "./health.controller";
 import { requireRolePermission } from "./_permission";
@@ -39,6 +40,10 @@ export const paymentsController = {
     if (!session) return unauthorized();
     const denied = await requireRolePermission(session, "payments", "delete");
     if (denied) return denied;
+    const elevated = await canViewAllTickets(session);
+    if (!elevated) {
+      return { status: 403, body: { ok: false, message: "Managers and admins only." } };
+    }
 
     try {
       await PaymentsModel.deleteAllPayments();

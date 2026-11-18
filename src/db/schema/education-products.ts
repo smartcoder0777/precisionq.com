@@ -136,6 +136,9 @@ export const payments = mysqlTable("payments", {
   id: int("id").autoincrement().primaryKey(),
   order_id: int("order_id"),
   user_id: int("user_id"),
+  provider: v("provider", 32),
+  provider_ref: v("provider_ref", 255),
+  method: v("method", 32),
   stripe_payment_intent_id: v("stripe_payment_intent_id", 255),
   stripe_payment_method_id: v("stripe_payment_method_id", 255),
   name: v("name", 255),
@@ -149,6 +152,7 @@ export const payments = mysqlTable("payments", {
   card_exp_year: int("card_exp_year"),
   status: v("status", 64),
   failure_reason: text("failure_reason"),
+  createdAt: datetime("createdAt", { mode: "string" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const invoices = mysqlTable("invoices", {
@@ -158,12 +162,16 @@ export const invoices = mysqlTable("invoices", {
   stripe_payment_method_id: v("stripe_payment_method_id", 255),
   order_id: int("order_id"),
   user_id: int("user_id"),
+  provider: v("provider", 32),
+  provider_ref: v("provider_ref", 255),
+  method: v("method", 32),
   amount: decimal("amount", { precision: 12, scale: 2 }),
   customer_email: v("customer_email", 255),
   card_last4: v("card_last4", 16),
   currency: v("currency", 16),
   status: v("status", 64),
   invoice_pdf: text("invoice_pdf"),
+  createdAt: datetime("createdAt", { mode: "string" }).default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const EDUCATIONS_COLUMNS = Object.keys(getTableColumns(educations)) as readonly (keyof typeof educations.$inferSelect)[];

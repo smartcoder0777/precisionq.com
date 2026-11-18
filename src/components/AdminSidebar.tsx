@@ -17,6 +17,9 @@ import {
   CreditCard,
   Users,
   Activity,
+  Wallet,
+  ArrowUpRight,
+  ShoppingCart,
 } from "lucide-react";
 import { adminPage } from "@/routes/index";
 
@@ -33,6 +36,9 @@ const NAV_ITEMS = [
   { title: "Agreements", path: adminPage("/agreements"), icon: FileCheck },
   { title: "Products & Services", path: adminPage("/products-services"), icon: Package },
   { title: "Payments", path: adminPage("/payments"), icon: CreditCard },
+  { title: "Checkout", path: adminPage("/checkout"), icon: ShoppingCart },
+  { title: "Wallet", path: adminPage("/wallet"), icon: Wallet },
+  { title: "Withdrawals", path: adminPage("/payments/withdrawals"), icon: ArrowUpRight },
   { title: "Users", path: adminPage("/users"), icon: Users },
 ];
 

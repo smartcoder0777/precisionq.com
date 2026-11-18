@@ -24,6 +24,12 @@ export async function requireRolePermission(
       if (legacySettingsActions.includes(wantedAction)) return null;
       if (wantedAction !== "view" && legacySettingsActions.includes("edit")) return null;
     }
+    if (wantedPage === "wallet" || wantedPage === "withdrawals" || wantedPage === "settings-payments") {
+      const paymentsActions = session.permissions.payments ?? [];
+      if (paymentsActions.includes(wantedAction)) return null;
+      if (wantedAction !== "view" && paymentsActions.includes("edit")) return null;
+      if (wantedAction === "view" && paymentsActions.includes("view")) return null;
+    }
   }
   const allowed = await hasRolePermission(session.roleId, pageKey, action);
   if (allowed) return null;
@@ -34,6 +40,14 @@ export async function requireRolePermission(
       wantedAction === "view" ? "view" : "edit",
     );
     if (legacyAllowed) return null;
+  }
+  if (wantedPage === "wallet" || wantedPage === "withdrawals" || wantedPage === "settings-payments") {
+    const paymentsAllowed = await hasRolePermission(
+      session.roleId,
+      "payments",
+      wantedAction === "view" ? "view" : wantedAction === "create" ? "create" : "edit",
+    );
+    if (paymentsAllowed) return null;
   }
   return forbidden();
 }

@@ -1,5 +1,6 @@
 import type { PaymentsRecord } from "@/models/payments.model";
 import type { PaymentPageRow } from "@/types/payments-page";
+import { formatUsDate } from "@/lib/date-format";
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -15,9 +16,17 @@ function normalizeStatus(s: string | null): PaymentPageRow["status"] {
 }
 
 function paymentIntentDisplay(r: PaymentsRecord): string {
-  const pi = (r.stripe_payment_intent_id ?? "").trim();
-  if (pi) return pi;
+  const ref = (r.provider_ref ?? r.stripe_payment_intent_id ?? "").trim();
+  if (ref) return ref;
   return `pay_${r.id}`;
+}
+
+function methodBrand(method: string | null, cardLast4: string | null): string {
+  const m = (method ?? "").toLowerCase();
+  if (m === "paypal") return "PayPal";
+  if (m === "bank") return "Bank";
+  if ((cardLast4 ?? "").trim()) return "Card";
+  return m || "—";
 }
 
 export function paymentsRecordToPageRow(r: PaymentsRecord): PaymentPageRow {
@@ -26,6 +35,13 @@ export function paymentsRecordToPageRow(r: PaymentsRecord): PaymentPageRow {
   const desc =
     failure ||
     (orderId != null ? `Payment for order #${orderId}` : "Payment");
+  const createdRaw = r.createdAt ?? null;
+  const createdAt =
+    createdRaw instanceof Date
+      ? formatUsDate(createdRaw, "—")
+      : createdRaw
+        ? formatUsDate(String(createdRaw), "—")
+        : "—";
 
   return {
     id: num(r.id),
@@ -35,12 +51,15 @@ export function paymentsRecordToPageRow(r: PaymentsRecord): PaymentPageRow {
     phone: (r.phone ?? "").trim() || "—",
     amount: num(r.amount),
     cardLast4: (r.card_last4 ?? "").trim() || "—",
-    cardBrand: "Card",
+    cardBrand: methodBrand(r.method, r.card_last4),
     status: normalizeStatus(r.status),
-    createdAt: "—",
+    createdAt,
     invoiceId: orderId != null ? `ORDER-${orderId}` : "—",
     invoiceUrl: "",
     description: desc,
     currency: (r.currency ?? "usd").trim().toLowerCase() || "usd",
+    provider: (r.provider ?? (r.stripe_payment_intent_id ? "stripe" : "—")).trim() || "—",
+    method: (r.method ?? "—").trim() || "—",
+    orderId,
   };
 }

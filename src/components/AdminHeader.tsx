@@ -25,6 +25,7 @@ import {
   Users,
   Ticket,
 } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +57,7 @@ const SETTINGS_GROUPS = [
       { title: "Pay Type", path: adminPage("/settings/pay-type"), icon: Wallet },
       { title: "Payment Cycle", path: adminPage("/settings/payment-cycle"), icon: CalendarClock },
       { title: "Billing Cycle Category", path: adminPage("/settings/billing-cycle"), icon: Repeat },
+      { title: "Payments", path: adminPage("/settings/payments"), icon: Wallet },
     ],
   },
   {

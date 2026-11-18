@@ -13,8 +13,12 @@ export type PaymentPageRow = {
   invoiceUrl: string;
   description: string;
   currency: string;
+  provider: string;
+  method: string;
+  orderId: number | null;
 };
 
 export type PaymentsPagePayload = {
   rows: PaymentPageRow[];
+  canDeleteAll: boolean;
 };

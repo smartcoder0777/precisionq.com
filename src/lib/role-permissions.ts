@@ -29,6 +29,8 @@ export const ROLE_PAGE_GROUPS = [
     pages: [
       { key: "products-services", label: "Products & Services", actions: ["view", "create", "edit", "delete"] as const },
       { key: "payments", label: "Payments", actions: ["view", "create", "edit", "delete"] as const },
+      { key: "wallet", label: "Wallet", actions: ["view"] as const },
+      { key: "withdrawals", label: "Withdrawals", actions: ["view", "create", "edit"] as const },
     ],
   },
   {
@@ -42,6 +44,7 @@ export const ROLE_PAGE_GROUPS = [
       { key: "settings-pay-type", label: "Settings - Pay Type", actions: ["view", "edit"] as const },
       { key: "settings-payment-cycle", label: "Settings - Payment Cycle", actions: ["view", "edit"] as const },
       { key: "settings-billing-cycle", label: "Settings - Billing Cycle", actions: ["view", "edit"] as const },
+      { key: "settings-payments", label: "Settings - Payments", actions: ["view", "edit"] as const },
       { key: "settings-survey", label: "Settings - Survey", actions: ["view", "edit"] as const },
       { key: "settings-qp", label: "Settings - QP", actions: ["view", "edit"] as const },
       { key: "settings-ticket-types", label: "Settings - Ticket Types", actions: ["view", "edit"] as const },
@@ -73,6 +76,10 @@ export function resolvePagePermissionKey(pathname: string): string | null {
   if (pathname.startsWith("/admin/survey")) return "survey";
   if (pathname.startsWith("/admin/agreements")) return "agreements";
   if (pathname.startsWith("/admin/products-services")) return "products-services";
+  if (pathname.startsWith("/admin/checkout")) return "payments";
+  if (pathname.startsWith("/admin/wallet")) return "wallet";
+  if (pathname.startsWith("/admin/payments/wallets")) return "wallet";
+  if (pathname.startsWith("/admin/payments/withdrawals")) return "withdrawals";
   if (pathname.startsWith("/admin/payments")) return "payments";
   if (pathname.startsWith("/admin/users")) return "users";
   if (pathname.startsWith("/admin/settings/roles-permissions")) return "roles-permissions";
@@ -82,6 +89,7 @@ export function resolvePagePermissionKey(pathname: string): string | null {
   if (pathname.startsWith("/admin/settings/pay-type")) return "settings-pay-type";
   if (pathname.startsWith("/admin/settings/payment-cycle")) return "settings-payment-cycle";
   if (pathname.startsWith("/admin/settings/billing-cycle")) return "settings-billing-cycle";
+  if (pathname.startsWith("/admin/settings/payments")) return "settings-payments";
   if (pathname.startsWith("/admin/settings/survey")) return "settings-survey";
   if (pathname.startsWith("/admin/settings/qp")) return "settings-qp";
   if (pathname.startsWith("/admin/settings/ticket-types")) return "settings-ticket-types";
